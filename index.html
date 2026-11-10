@@ -249,13 +249,13 @@ aside > .card{
 <div class="card" id="sameC" hidden><h3>แนวเดียวกัน (ซ้ำทุก 24 วัน)</h3><div id="same" class="chips"></div></div>
 <div class="card"><h3>วาดแนว (Strip) · RADARSAT-2</h3>
 <div class="chips" style="margin:0 0 8px"><button id="draw">✏️ วาดแนว (คลิกบนแผนที่)</button></div>
-<div class="mut">วาดได้เฉพาะภายในกรอบแนวที่แสดงของวันที่เลือกในปฏิทิน (เลือกวันและแถวในรายการก่อน) ระบบสร้างแนวตามทิศขาขึ้น/ขาลง และใช้ความกว้างตามแนวที่แสดง ลากหมุดได้ภายในกรอบเท่านั้น · คลิกซ้ำเพื่อเพิ่มจุดใหม่ได้หลายจุด แต่แนวของคนละจุดต้องไม่ทับกัน (เลือกจุดจากรายการด้านล่างเพื่อแก้ไขทิศ/จำนวนแนว)</div>
+<div class="mut">วาดได้เฉพาะภายในกรอบแนวที่แสดงของวันที่เลือกในปฏิทิน (เลือกวันและแถวในรายการก่อน) ระบบสร้างแนวตามทิศขาขึ้น/ขาลง และใช้ความกว้างตามแนวที่แสดง ลากหมุดได้ภายในกรอบเท่านั้น · ระบบเลือก SCNA/SCNB ที่แนวใหม่อยู่ในนั้นมากกว่า ความกว้างปรับตามกรอบที่คลิกได้ (ค่ามาตรฐาน 285.3 × 301 กม. คืนค่าได้) และแนวล้ำออกนอกกรอบได้ไม่เกิน 10% · คลิกซ้ำเพื่อเพิ่มจุดใหม่ได้หลายจุด แต่แนวของคนละจุดต้องไม่ทับกัน (เลือกจุดจากรายการด้านล่างเพื่อแก้ไขทิศ/จำนวนแนว)</div>
 <div style="margin-top:8px"><label>ทิศทางโคจร <select id="pass"><option value="ascending">ขาขึ้น (Ascending)</option><option value="descending">ขาลง (Descending)</option></select></label></div>
 <div class="mut" style="margin-top:8px">จำนวนแนว (ต่อกันตามความยาว มีส่วนซ้อนทับ) · จุดที่คลิกเป็นจุดกึ่งกลางของทุกแนว</div>
 <div class="chips" id="segs"><button class="seg" data-n="1">1</button><button class="seg" data-n="2">2</button><button class="seg" data-n="3">3</button><button class="seg" data-n="4">4</button><button class="seg" data-n="5">5</button><button id="subN">−</button><input type="number" id="nAlong" min="1" max="30" value="1"><button id="addN">+ เพิ่มแนว</button></div>
 <div class="mut" style="margin-top:8px">พิกัดจุดกลาง Lat <input type="number" id="lat" step="any"> Lon <input type="number" id="lon" step="any"> <button id="goto" title="ย้ายจุดที่เลือกไปพิกัดนี้">ย้ายจุด</button> <button id="addxy" title="เพิ่มจุดใหม่ที่พิกัดนี้">＋ เพิ่มจุด</button></div>
-<details style="margin-top:8px"><summary class="mut">ปรับขนาดแนว (ขั้นสูง)</summary>
-<div class="mut" style="margin-top:6px">กว้าง <input type="number" id="pW" step="any"> ยาว <input type="number" id="pL" step="any"> กม.<br>ซ้อนทับซ้าย-ขวา <input type="number" id="pOS" step="any"> บน-ล่าง <input type="number" id="pOA" step="any"> กม.<br>ทิศทางโคจร <input type="number" id="hdg" step="any">° <button id="reset">คืนค่ามาตรฐาน</button></div>
+<details style="margin-top:8px"><summary class="mut">ปรับขนาดแนว (ค่าเริ่มต้น = มาตรฐาน กดคืนค่ามาตรฐานได้)</summary>
+<div class="mut" style="margin-top:6px">กว้าง <input type="number" id="pW" step="any"> ยาว <input type="number" id="pL" step="any"> กม.<br>ซ้อนทับซ้าย-ขวา <input type="number" id="pOS" step="any"> บน-ล่าง <input type="number" id="pOA" step="any"> กม.<br>ทิศทางโคจร <input type="number" id="hdg" step="any">° <button id="fitw" title="ปรับความกว้างแนวให้เท่ากรอบ SCNA/SCNB ของจุดที่เลือก">ปรับความกว้างตามกรอบ</button> <button id="reset">คืนค่ามาตรฐาน</button></div>
 <div class="mut" style="margin-top:4px">ซ้อนทับ 28.5 / 30 กม. เป็นค่าจาก strip_map.html (ยังไม่ใช่ค่าที่วัดจริงทั้งหมด)</div></details>
 <div class="mut">จุดที่วาด (คลิกเพื่อเลือก / ✕ เพื่อลบ)</div><div class="chips" id="ptlist"></div>
 <div id="info">ยังไม่ได้เลือกจุด เปิดโหมดวาดแล้วคลิกบนแผนที่</div>
@@ -389,19 +389,67 @@ function fromPass(ll,r,fi){
  const dx=off*nx,dy=off*ny; // เลื่อนจุดข้ามแนวให้อยู่กลางแนว
  const q=geodDirect(ll.lat,ll.lng,Math.atan2(dx,dy),Math.hypot(dx,dy));
  const a=r[0],ref={t:new Date(a.t).toISOString(),tk:a.x.tk,k:a.k};
- if(wMeas)$('pW').value=wMeas;$('pass').value=pass;$('hdg').value=RS.hd[pass];addPoint(q[0],q[1],ref,'ifNeeded')}
+ if(wMeas)$('pW').value=wMeas;$('pass').value=pass;$('hdg').value=RS.hd[pass];addPoint(q[0],q[1],ref,'ifNeeded',r)}
+// ---- จำกัดแนวที่วาดให้อยู่ในกรอบ SCNA / SCNB (ตัดส่วนที่เกินกรอบออก)
+const OUT_MAX=0.10; // แนวมาตรฐานล้ำขอบกรอบ SCNA/SCNB ได้ไม่เกิน 10% ของพื้นที่แนว
+function kmOf(lat0,lon0){const kx=111.32*Math.cos(lat0*D2R),ky=110.57;
+ return{fwd:(lat,lon)=>[(((lon-lon0+540)%360)-180)*kx,(lat-lat0)*ky],inv:(x,y)=>[lat0+y/ky,wrapLon(lon0+x/kx)]}}
+function polyArea(P){let a=0;for(let i=0;i<P.length;i++){const u=P[i],v=P[(i+1)%P.length];a+=u[0]*v[1]-v[0]*u[1]}return a/2}
+function polyCentroid(P){let A=0,cx=0,cy=0;for(let i=0;i<P.length;i++){const u=P[i],v=P[(i+1)%P.length],c=u[0]*v[1]-v[0]*u[1];A+=c;cx+=(u[0]+v[0])*c;cy+=(u[1]+v[1])*c}
+ return Math.abs(A)<1e-9?P[0]:[cx/(3*A),cy/(3*A)]}
+function clipConvex(subject,clip){ // Sutherland–Hodgman: clip ต้องเป็นรูปนูน (ใช้กรอบสี่เหลี่ยมของแนว) subject เป็นรูปใดก็ได้ (ขอบกรอบ SCNA/SCNB)
+ let out=subject.slice();const sg=polyArea(clip)>0?1:-1;
+ for(let i=0;i<clip.length&&out.length;i++){
+  const A=clip[i],B=clip[(i+1)%clip.length];
+  const inside=p=>sg*((B[0]-A[0])*(p[1]-A[1])-(B[1]-A[1])*(p[0]-A[0]))>=0;
+  const inter=(p,q)=>{const d=(p[0]-q[0])*(A[1]-B[1])-(p[1]-q[1])*(A[0]-B[0]);if(Math.abs(d)<1e-12)return p;
+   const t=((p[0]-A[0])*(A[1]-B[1])-(p[1]-A[1])*(A[0]-B[0]))/d;return[p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])]};
+  const inp=out;out=[];
+  for(let j=0;j<inp.length;j++){const cur=inp[j],prev=inp[(j+inp.length-1)%inp.length];
+   if(inside(cur)){if(!inside(prev))out.push(inter(prev,cur));out.push(cur)}else if(inside(prev))out.push(inter(prev,cur))}}
+ const res=[];out.forEach(q=>{const l=res[res.length-1];if(!l||Math.hypot(l[0]-q[0],l[1]-q[1])>1e-6)res.push(q)});
+ if(res.length>1&&Math.hypot(res[0][0]-res[res.length-1][0],res[0][1]-res[res.length-1][1])<=1e-6)res.pop();
+ return res}
+function footRings(i){const out=[];i.x.f.geometry.coordinates.forEach(poly=>{const r=poly[0].slice(),a=r[0],b=r[r.length-1];if(a[0]===b[0]&&a[1]===b[1])r.pop();out.push(r)});return out}
+// ตัดแนว s ด้วยกรอบ rings -> {full,area,frac,poly,center}; poly=null ถ้าอยู่ในกรอบทั้งหมด
+function clipStrip(s,rings){
+ const K=kmOf(s.center[0],s.center[1]),R=s.corners.map(c=>K.fwd(c[0],c[1])),full=Math.abs(polyArea(R));let best=null;
+ rings.forEach(ring=>{const out=clipConvex(ring.map(v=>K.fwd(v[1],v[0])),R);if(out.length<3)return;const a=Math.abs(polyArea(out));if(!best||a>best.a)best={out,a}});
+ if(!best)return{full,area:0,frac:0,poly:null};
+ const frac=best.a/full;if(frac>0.9995)return{full,area:full,frac:1,poly:null};
+ const poly=best.out.map(q=>{const k=R.findIndex(r=>Math.hypot(r[0]-q[0],r[1]-q[1])<.05);return k>=0?s.corners[k]:K.inv(q[0],q[1])});
+ const cc=polyCentroid(best.out);return{full,area:best.a,frac,poly,center:K.inv(cc[0],cc[1])}}
+// เลือก SCNA/SCNB ที่แนวใหม่อยู่ในนั้น "มากกว่า" (เทียบพื้นที่ซ้อน) แล้วใช้เป็นกรอบจำกัด
+function pickClip(p,cands){
+ if(!cands||!cands.length)return null;
+ const raw=computeStrips({...p,clip:null}).strips;let best=null,tot=0;
+ raw.forEach(s=>tot+=Math.abs(polyArea(s.corners.map(c=>kmOf(s.center[0],s.center[1]).fwd(c[0],c[1])))));
+ cands.forEach(i=>{const rings=footRings(i);let A=0;raw.forEach(s=>A+=clipStrip(s,rings).area);
+  if(!best||A>best.area+1e-6)best={area:A,beam:i.x.p.beamMnemon||'',rings,share:tot?A/tot:0}});
+ return best&&best.area>1?{beam:best.beam,rings:best.rings,share:best.share}:null}
+// หาค่า clip ใหม่ให้จุด pp (วันที่เลือกอยู่ -> เลือก SCNA/SCNB ใหม่จากกรอบที่แสดง, วันอื่น -> ใช้กรอบเดิม) คืน null ถ้าแนวออกนอกกรอบทั้งหมด
+function reclip(pp,cands){
+ let clip=pp.clip||null;
+ const cs=cands||(pp.date===sel&&curRows.length?curRows:null);
+ if(cs&&cs.length){clip=pickClip(pp,cs);if(!clip)return null}
+ if(clip&&!computeStrips({...pp,clip}).strips.length)return null;
+ return{clip}}
 function computeStrips(p){
  const asc=p.pass==='ascending',lineAz=asc?(p.heading+180)%360:p.heading,al=lineAz*D2R; // แกนยาวชี้ไปทางใต้เสมอ
  const ux=Math.sin(al),uy=Math.cos(al),nx=-uy,ny=ux,stepC=p.width-p.ovSide,stepA=p.length-p.ovAlong,W=p.width,Ln=p.length;
  const P2=(c,a)=>{const x=c*nx+a*ux,y=c*ny+a*uy;return geodDirect(p.lat,p.lon,Math.atan2(x,y),Math.hypot(x,y))};
  const edge=(c0,a0,c1,a1)=>{const n=Math.max(2,Math.min(40,Math.ceil(Math.hypot(c1-c0,a1-a0)/10))),o=[];for(let k=0;k<n;k++){const q=k/n;o.push(P2(c0+(c1-c0)*q,a0+(a1-a0)*q))}return o};
- const strips=[];
+ const strips=[];let cut=0,drop=0,aRaw=0,aIn=0;
  const N=p.nAlong;
  for(let j=0;j<N;j++){const a=(j-(N-1)/2)*stepA,jj=asc?N-1-j:j;
   for(let i=0;i<p.nAcross;i++){const c=(i-(p.nAcross-1)/2)*stepC,cw=c-W/2,ce=c+W/2,an=a-Ln/2,as=a+Ln/2;
    const corners=[P2(cw,an),P2(ce,an),P2(ce,as),P2(cw,as)],ring=[].concat(edge(cw,an,ce,an),edge(ce,an,ce,as),edge(ce,as,cw,as),edge(cw,as,cw,an));
-   strips.push({i,j:jj,ci:N>1?jj:i,label:p.nAcross===1?String(jj+1):(jj+1)+'.'+(i+1),center:P2(c,a),corners,ring})}}
- const h=p.heading;return{strips,heading:h,tilt:h>270?360-h:Math.abs(h-180),stepC,stepA}}
+    const s={i,j:jj,ci:N>1?jj:i,label:p.nAcross===1?String(jj+1):(jj+1)+'.'+(i+1),center:P2(c,a),corners,ring};
+    if(p.clip){const r=clipStrip(s,p.clip.rings);aRaw+=r.full;
+     if(r.frac<1-OUT_MAX){drop++;continue}       // ล้ำกรอบเกิน 10% -> ไม่สร้างแนวนี้ (ขนาดมาตรฐานคงเดิม ไม่ตัด ไม่ย่อ)
+     aIn+=r.area;s.outFrac=1-r.frac;if(r.frac<0.9995)cut++}
+    strips.push(s)}}
+  const h=p.heading;return{strips,heading:h,tilt:h>270?360-h:Math.abs(h-180),stepC,stepA,cut,drop,inFrac:aRaw?aIn/aRaw:1}}
 function readForm(){return{pass:$('pass').value,heading:num('hdg',NaN),nAlong:Math.max(1,+$('nAlong').value||1),nAcross:1,width:num('pW',NaN),length:num('pL',NaN),ovSide:num('pOS',NaN),ovAlong:num('pOA',NaN)}}
 function validP(p){
  if(!(p.width>0&&p.length>0&&p.ovSide>=0&&p.ovAlong>=0&&p.heading>=0)){alert('กรุณากรอกขนาด/ทิศของแนวให้ถูกต้อง');return false}
@@ -427,19 +475,24 @@ function overlapWith(p,skip){ // คืนดัชนีจุดแรกท�
    if(Math.hypot(kb[0],kb[1])>450)continue;
    if(satOverlap(quadKm(a.corners,lat0,lon0),quadKm(b.corners,lat0,lon0),OV_TOL))return i}}
  return -1}
-function addPoint(lat,lon,ref,fit){
+function addPoint(lat,lon,ref,fit,cands){
  const now=Date.now();if(now-lastAdd<350)return;lastAdd=now; // กันคลิกซ้ำ/ดับเบิลคลิกที่เพิ่มจุดซ้อน
  const p=readForm();if(!validP(p))return;
- const np={...p,lat:clampLat(lat),lon:wrapLon(lon),ref:ref||null,date:sel||dkey(Date.now())},k=overlapWith(np,-1);
+ const np={...p,lat:clampLat(lat),lon:wrapLon(lon),ref:ref||null,date:sel||dkey(Date.now())};
+ const cs=cands||(curRows.length?curRows:null);
+ if(cs){const clip=pickClip(np,cs);if(!clip){toast('เพิ่มจุดนี้ไม่ได้ เพราะแนวอยู่นอกกรอบ SCNA/SCNB ที่แสดง');return}np.clip=clip}
+ const k=overlapWith(np,-1);
  if(k>=0){toast('เพิ่มจุดนี้ไม่ได้ เพราะแนวทับกับจุดที่ '+(k+1)+' (เลือกตำแหน่งอื่น หรือลดจำนวนแนว)');return}
  pts.push(np);act=pts.length-1;
- loadForm(pts[act]);refresh(fit||'ifNeeded');toast('เพิ่มจุดที่ '+pts.length+' แล้ว · คลิกบนแนวเพื่อเพิ่มจุดต่อไป')}
+ loadForm(pts[act]);refresh(fit||'ifNeeded');toast('เพิ่มจุดที่ '+pts.length+' แล้ว'+(np.clip?' · อยู่ใน '+np.clip.beam+' (ล้ำกรอบได้ไม่เกิน 10%)':'')+' · คลิกบนแนวเพื่อเพิ่มจุดต่อไป')}
 function setActive(i){if(i<0||i>=pts.length)return;act=i;loadForm(pts[i]);refresh()}
 function delPoint(i){if(i<0||i>=pts.length)return;pts.splice(i,1);if(i<act)act--;if(act>=pts.length)act=pts.length-1;
  if(act>=0)loadForm(pts[act]);else{$('lat').value=$('lon').value=''}refresh()}
 function applyForm(){if(act<0)return;const p=readForm();if(!validP(p)){loadForm(pts[act]);return}
- const k=overlapWith({...pts[act],...p},act);if(k>=0){toast('ปรับค่านี้ไม่ได้ เพราะแนวจะทับกับจุดที่ '+(k+1));loadForm(pts[act]);return}
- Object.assign(pts[act],p);refresh('ifNeeded')}
+ const pp={...pts[act],...p},rc=reclip(pp);if(!rc){toast('ปรับค่านี้ไม่ได้ เพราะแนวจะออกนอกกรอบ SCNA/SCNB');loadForm(pts[act]);return}
+ pp.clip=rc.clip;
+ const k=overlapWith(pp,act);if(k>=0){toast('ปรับค่านี้ไม่ได้ เพราะแนวจะทับกับจุดที่ '+(k+1));loadForm(pts[act]);return}
+ Object.assign(pts[act],p,{clip:rc.clip});refresh('ifNeeded')}
 function refresh(fit){
  sl.clearLayers();
  if(!pts.length){act=-1;$('info').textContent='ยังไม่ได้เลือกจุด เปิดโหมดวาดแล้วคลิกบนแผนที่';$('tbl').hidden=true;$('ptlist').innerHTML='';return}
@@ -448,18 +501,19 @@ function refresh(fit){
  results.forEach((res,pi)=>{const p=pts[pi],on=pi===act;
   if(multi)res.strips.forEach(s=>s.label=(pi+1)+'.'+s.label);
   res.strips.forEach(s=>{const col=COLORS[(s.ci+pi)%COLORS.length];
-   L.polygon(s.ring,{color:col,weight:on?3:2,fillColor:col,fillOpacity:on?.28:.16,interactive:!drawing}).bindPopup(()=>`<b>แนว ${s.label}</b>${multi?' · จุดที่ '+(pi+1):''}<br>กว้าง ${p.width} ยาว ${p.length} กม.<br>จุดกลาง: ${f5(s.center[0])}, ${f5(s.center[1])}<br>`+s.corners.map((c,q)=>`${q+1} ${['เหนือ-ตะวันตก','เหนือ-ตะวันออก','ใต้-ตะวันออก','ใต้-ตะวันตก'][q]}: ${f5(c[0])}, ${f5(c[1])}`).join('<br>')).addTo(sl);
-   L.marker(s.center,{icon:L.divIcon({className:'lbl',html:`<span style="background:${col}">${s.label}</span>`,iconSize:[26,26],iconAnchor:[13,13]}),interactive:false}).addTo(sl)});
+   L.polygon(s.ring,{color:col,weight:on?3:2,fillColor:col,fillOpacity:on?.28:.16,interactive:!drawing}).bindPopup(()=>`<b>แนวที่วาด</b>${multi?' · จุดที่ '+(pi+1):''}<br>กว้าง ${p.width} ยาว ${p.length} กม.<br>จุดกลาง: ${f5(s.center[0])}, ${f5(s.center[1])}<br>`+(s.outFrac>0.0005?'<i>ล้ำกรอบ '+(p.clip?p.clip.beam:'')+' '+(s.outFrac*100).toFixed(1)+'%</i><br>':'')+s.corners.map((c,q)=>`${q+1} ${s.clipped?'':['เหนือ-ตะวันตก','เหนือ-ตะวันออก','ใต้-ตะวันออก','ใต้-ตะวันตก'][q]}: ${f5(c[0])}, ${f5(c[1])}`).join('<br>')).addTo(sl);});
   const m=L.marker([p.lat,p.lon],{draggable:true,zIndexOffset:on?1000:0,title:'จุดที่ '+(pi+1)+' (ลากเพื่อย้าย)',icon:L.divIcon({className:'',html:`<div class="ctrdot${on?' act':''}"></div>`,iconSize:[22,22],iconAnchor:[11,11]})}).addTo(sl);
   m.on('click',()=>{if(act!==pi)setActive(pi)});
   m.on('dragend',()=>{const ll=m.getLatLng();
-   if(p.date!==sel||inGroup(ll)){const k=overlapWith({...p,lat:clampLat(ll.lat),lon:wrapLon(ll.lng)},pi);
+   if(p.date!==sel||inGroup(ll)){const pp={...p,lat:clampLat(ll.lat),lon:wrapLon(ll.lng)},rc=reclip(pp);
+    if(!rc){toast('ย้ายไม่ได้ เพราะแนวจะออกนอกกรอบ SCNA/SCNB');refresh();return}
+    pp.clip=rc.clip;const k=overlapWith(pp,pi);
     if(k>=0){toast('ย้ายไม่ได้ เพราะแนวจะทับกับจุดที่ '+(k+1));refresh();return}
-    p.lat=clampLat(ll.lat);p.lon=wrapLon(ll.lng);act=pi;loadForm(p);refresh('ifNeeded')}
+    p.lat=pp.lat;p.lon=pp.lon;p.clip=rc.clip;act=pi;loadForm(p);refresh('ifNeeded')}
    else{toast('ลากหมุดได้เฉพาะภายในกรอบแนวที่แสดงของวันที่เลือก');refresh()}})});
  const res=results[act],p=pts[act],NA=p.nAlong,wT=p.width*p.nAcross-p.ovSide*(p.nAcross-1),lT=p.length*NA-p.ovAlong*(NA-1),total=results.reduce((n,r)=>n+r.strips.length,0);
- $('info').innerHTML=`<b>RADARSAT-2</b> · ${multi?'จุดที่ '+(act+1)+' · ':''}${p.pass==='ascending'?'ขาขึ้น':'ขาลง'}<br>จุดกลาง: ${f5(p.lat)}, ${f5(p.lon)} · <a target="_blank" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lon}">Street View</a><br>ขนาด 1 แนว: ${p.width} × ${p.length} กม.<br>ทิศทางโคจร ${res.heading.toFixed(2)}° (เอียง ${res.tilt.toFixed(2)}° จากแนวเหนือ-ใต้)${p.ref?'<br>อ้างอิงแนว #'+p.ref.tk+' · '+dstr(Date.parse(p.ref.t))+' '+hm(Date.parse(p.ref.t)):''}<br>จำนวน ${res.strips.length} แนว${NA>1?' · ระยะห่างบน-ล่าง '+res.stepA.toFixed(3)+' กม.':''}<br>ครอบคลุม ≈ ${wT.toFixed(1)} × ${lT.toFixed(1)} กม. (${Math.round(wT*lT).toLocaleString()} ตร.กม.)${multi?`<br><b>รวมทั้งหมด ${pts.length} จุด · ${total} แนว</b>`:''}`;
- $('ptlist').innerHTML=pts.map((q,i)=>`<span style="display:inline-flex;gap:2px"><button class="pt ${i===act?'on':''}" data-i="${i}">จุด ${i+1} · ${q.pass==='ascending'?'ขาขึ้น':'ขาลง'} · ${q.nAlong} แนว</button><button class="pt" data-d="${i}" title="ลบจุดนี้">✕</button></span>`).join('');
+ $('info').innerHTML=`<b>RADARSAT-2</b> · ${multi?'จุดที่ '+(act+1)+' · ':''}${p.pass==='ascending'?'ขาขึ้น':'ขาลง'}<br>จุดกลาง: ${f5(p.lat)}, ${f5(p.lon)} · <a target="_blank" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lon}">Street View</a><br>ขนาด 1 แนว: ${p.width} × ${p.length} กม.<br>ทิศทางโคจร ${res.heading.toFixed(2)}° (เอียง ${res.tilt.toFixed(2)}° จากแนวเหนือ-ใต้)${p.ref?'<br>อ้างอิงแนว #'+p.ref.tk+' · '+dstr(Date.parse(p.ref.t))+' '+hm(Date.parse(p.ref.t)):''}<br>จำนวน ${res.strips.length} แนว${NA>1?' · ระยะห่างบน-ล่าง '+res.stepA.toFixed(3)+' กม.':''}${p.clip?`<br>กรอบอ้างอิง: <span class="badge" style="background:${BC[p.clip.beam]||'#16a34a'}">${p.clip.beam}</span> · ${res.cut||res.drop?`ล้ำกรอบไม่เกิน 10%: ${res.cut} แนว${res.drop?' · ไม่สร้าง '+res.drop+' แนวที่ล้ำเกิน 10%':''}`:'อยู่ในกรอบทั้งหมด'}<br>ส่วนที่อยู่ในกรอบ ${Math.round(res.inFrac*100)}%`:`<br>ครอบคลุม ≈ ${wT.toFixed(1)} × ${lT.toFixed(1)} กม. (${Math.round(wT*lT).toLocaleString()} ตร.กม.)`}${multi?`<br><b>รวมทั้งหมด ${pts.length} จุด · ${total} แนว</b>`:''}`;
+ $('ptlist').innerHTML=pts.map((q,i)=>`<span style="display:inline-flex;gap:2px"><button class="pt ${i===act?'on':''}" data-i="${i}">จุด ${i+1} · ${q.pass==='ascending'?'ขาขึ้น':'ขาลง'} · ${q.nAlong} แนว${q.clip?' · '+q.clip.beam:''}</button><button class="pt" data-d="${i}" title="ลบจุดนี้">✕</button></span>`).join('');
  $('ptlist').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>setActive(+b.dataset.i));
  $('ptlist').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>delPoint(+b.dataset.d));
  const tb=$('tbl').querySelector('tbody');tb.innerHTML=results.flatMap(r=>r.strips).map(s=>`<tr><td>${s.label}</td><td>${f5(s.center[0])}</td><td>${f5(s.center[1])}</td></tr>`).join('');$('tbl').hidden=false;
@@ -470,7 +524,7 @@ function toGJ(){const out=[];
  pts.forEach((p,pi)=>{const res=computeStrips(p);
   res.strips.forEach(s=>{const label=pts.length>1?(pi+1)+'.'+s.label:s.label;
    const ring=s.corners.map(c=>[r5(c[1]),r5(c[0])]);ring.push(ring[0]);
-   const pr={name:'Strip '+label,satellite:'RADARSAT-2',date:p.date,point:pi+1,passDir:p.pass==='ascending'?'Ascending':'Descending',strip:s.i+1,scene:s.j+1,length_km:p.length,width_km:p.width,ovSide_km:p.ovSide,ovAlong_km:p.ovAlong,heading_deg:Math.round(res.heading*100)/100,refImagstrtDt:p.ref?p.ref.t:null,refTrack:p.ref?p.ref.tk:null,centreLat:r5(s.center[0]),centreLong:r5(s.center[1])};
+   const pr={name:'Strip '+label,satellite:'RADARSAT-2',date:p.date,point:pi+1,passDir:p.pass==='ascending'?'Ascending':'Descending',strip:s.i+1,scene:s.j+1,length_km:p.length,width_km:p.width,ovSide_km:p.ovSide,ovAlong_km:p.ovAlong,heading_deg:Math.round(res.heading*100)/100,beam:p.clip?p.clip.beam:null,outsideBeam_pct:s.outFrac?Math.round(s.outFrac*1000)/10:0,refImagstrtDt:p.ref?p.ref.t:null,refTrack:p.ref?p.ref.tk:null,centreLat:r5(s.center[0]),centreLong:r5(s.center[1])};
    s.corners.forEach((c,q)=>{pr['cornerLat'+(q+1)]=r5(c[0]);pr['cornerLng'+(q+1)]=r5(c[1])});
    out.push({type:'Feature',properties:pr,geometry:{type:'Polygon',coordinates:[ring]}})})});
  const dates=[...new Set(pts.map(p=>p.date))];
@@ -483,11 +537,17 @@ const bump=d=>{$('nAlong').value=Math.max(1,Math.min(30,Math.round(+$('nAlong').
 $('addN').onclick=()=>bump(1);$('subN').onclick=()=>bump(-1);$('nAlong').onchange=()=>bump(0);
 document.querySelectorAll('.seg').forEach(b=>b.onclick=()=>{$('nAlong').value=b.dataset.n;bump(0)});
 ['pW','pL','pOS','pOA','hdg'].forEach(id=>$(id).onchange=()=>applyForm());
+
+function frameWidth(p){if(!p.clip)return null;const asc=p.pass==='ascending',az=(asc?(p.heading+180)%360:p.heading)*D2R,ux=Math.sin(az),uy=Math.cos(az),nx=-uy,ny=ux,K=kmOf(p.lat,p.lon);let best=null;
+ p.clip.rings.forEach(r=>{const cr=r.map(v=>K.fwd(v[1],v[0])).filter(v=>Math.abs(v[0]*ux+v[1]*uy)<250).map(v=>v[0]*nx+v[1]*ny);if(cr.length<4)return;
+  const av=a=>a.reduce((t,v)=>t+v,0)/a.length,m=av(cr),Lf=cr.filter(x=>x<m),Rt=cr.filter(x=>x>=m);if(!Lf.length||!Rt.length)return;const w=av(Rt)-av(Lf);if(w>100&&w<600)best=+w.toFixed(1)});return best}
+$('fitw').onclick=()=>{if(act<0){toast('เลือกจุดก่อน');return}const w=frameWidth(pts[act]);if(!w){toast('วัดความกว้างกรอบไม่ได้');return}$('pW').value=w;applyForm();toast('ปรับความกว้างตามกรอบ '+pts[act].clip.beam+' = '+w+' กม.')};
 $('reset').onclick=()=>{defaults();applyForm()};
 const getXY=()=>{const a=num('lat',NaN),b=num('lon',NaN);if(!isFinite(a)||!isFinite(b)||Math.abs(a)>85||Math.abs(b)>180){alert('กรุณากรอก Lat (-85..85) และ Lon (-180..180)');return null}return[a,b]};
 $('goto').onclick=()=>{const c=getXY();if(!c)return;if(act<0){addPoint(c[0],c[1],null,'always');return}
- const k=overlapWith({...pts[act],lat:clampLat(c[0]),lon:wrapLon(c[1])},act);if(k>=0){toast('ย้ายไม่ได้ เพราะแนวจะทับกับจุดที่ '+(k+1));return}
- pts[act].lat=clampLat(c[0]);pts[act].lon=wrapLon(c[1]);pts[act].ref=null;refresh('always')};
+ const pp={...pts[act],lat:clampLat(c[0]),lon:wrapLon(c[1])},rc=reclip(pp);if(!rc){toast('ย้ายไม่ได้ เพราะแนวจะออกนอกกรอบ SCNA/SCNB');return}
+ pp.clip=rc.clip;const k=overlapWith(pp,act);if(k>=0){toast('ย้ายไม่ได้ เพราะแนวจะทับกับจุดที่ '+(k+1));return}
+ pts[act].lat=pp.lat;pts[act].lon=pp.lon;pts[act].clip=rc.clip;pts[act].ref=null;refresh('always')};
 $('addxy').onclick=()=>{const c=getXY();if(c)addPoint(c[0],c[1],null,'always')};
 $('fit').onclick=()=>pts.length?refresh('all'):alert('เปิดโหมดวาดแล้วคลิกบนแผนที่ก่อน');
 $('delp').onclick=()=>act>=0?delPoint(act):alert('ยังไม่มีจุดให้ลบ');
