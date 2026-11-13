@@ -391,7 +391,7 @@ function fromPass(ll,r,fi){
  const a=r[0],ref={t:new Date(a.t).toISOString(),tk:a.x.tk,k:a.k};
  if(wMeas)$('pW').value=wMeas;$('pass').value=pass;$('hdg').value=RS.hd[pass];addPoint(q[0],q[1],ref,'ifNeeded',r)}
 // ---- จำกัดแนวที่วาดให้อยู่ในกรอบ SCNA / SCNB (ตัดส่วนที่เกินกรอบออก)
-const OUT_MAX=0.10; // แนวมาตรฐานล้ำขอบกรอบ SCNA/SCNB ได้ไม่เกิน 10% ของพื้นที่แนว
+const OUT_MAX=0.10; // แนวมาตรฐานล้ำขอบกรอบ SCNA/SCNB ได้ไม่เกิน 10% ของพื้นที่แนว (ยกเว้นแนวแรก/กรอบหัวของแนว ไม่จำกัด)
 function kmOf(lat0,lon0){const kx=111.32*Math.cos(lat0*D2R),ky=110.57;
  return{fwd:(lat,lon)=>[(((lon-lon0+540)%360)-180)*kx,(lat-lat0)*ky],inv:(x,y)=>[lat0+y/ky,wrapLon(lon0+x/kx)]}}
 function polyArea(P){let a=0;for(let i=0;i<P.length;i++){const u=P[i],v=P[(i+1)%P.length];a+=u[0]*v[1]-v[0]*u[1]}return a/2}
@@ -446,7 +446,7 @@ function computeStrips(p){
    const corners=[P2(cw,an),P2(ce,an),P2(ce,as),P2(cw,as)],ring=[].concat(edge(cw,an,ce,an),edge(ce,an,ce,as),edge(ce,as,cw,as),edge(cw,as,cw,an));
     const s={i,j:jj,ci:N>1?jj:i,label:p.nAcross===1?String(jj+1):(jj+1)+'.'+(i+1),center:P2(c,a),corners,ring};
     if(p.clip){const r=clipStrip(s,p.clip.rings);aRaw+=r.full;
-     if(r.frac<1-OUT_MAX){drop++;continue}       // ล้ำกรอบเกิน 10% -> ไม่สร้างแนวนี้ (ขนาดมาตรฐานคงเดิม ไม่ตัด ไม่ย่อ)
+     if(r.frac<1-OUT_MAX&&!(jj===0&&r.frac>0)){drop++;continue}       // ล้ำกรอบเกิน 10% -> ไม่สร้างแนวนี้ (ขนาดมาตรฐานคงเดิม ไม่ตัด ไม่ย่อ) ยกเว้น "แนวแรก/กรอบหัว" (แนวที่ 1) ที่ล้ำได้เกิน 10% ตามการอ้างอิงมาตรฐานของซีน
      aIn+=r.area;s.outFrac=1-r.frac;if(r.frac<0.9995)cut++}
     strips.push(s)}}
   const h=p.heading;return{strips,heading:h,tilt:h>270?360-h:Math.abs(h-180),stepC,stepA,cut,drop,inFrac:aRaw?aIn/aRaw:1}}
@@ -512,7 +512,7 @@ function refresh(fit){
     p.lat=pp.lat;p.lon=pp.lon;p.clip=rc.clip;act=pi;loadForm(p);refresh('ifNeeded')}
    else{toast('ลากหมุดได้เฉพาะภายในกรอบแนวที่แสดงของวันที่เลือก');refresh()}})});
  const res=results[act],p=pts[act],NA=p.nAlong,wT=p.width*p.nAcross-p.ovSide*(p.nAcross-1),lT=p.length*NA-p.ovAlong*(NA-1),total=results.reduce((n,r)=>n+r.strips.length,0);
- $('info').innerHTML=`<b>RADARSAT-2</b> · ${multi?'จุดที่ '+(act+1)+' · ':''}${p.pass==='ascending'?'ขาขึ้น':'ขาลง'}<br>จุดกลาง: ${f5(p.lat)}, ${f5(p.lon)} · <a target="_blank" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lon}">Street View</a><br>ขนาด 1 แนว: ${p.width} × ${p.length} กม.<br>ทิศทางโคจร ${res.heading.toFixed(2)}° (เอียง ${res.tilt.toFixed(2)}° จากแนวเหนือ-ใต้)${p.ref?'<br>อ้างอิงแนว #'+p.ref.tk+' · '+dstr(Date.parse(p.ref.t))+' '+hm(Date.parse(p.ref.t)):''}<br>จำนวน ${res.strips.length} แนว${NA>1?' · ระยะห่างบน-ล่าง '+res.stepA.toFixed(3)+' กม.':''}${p.clip?`<br>กรอบอ้างอิง: <span class="badge" style="background:${BC[p.clip.beam]||'#16a34a'}">${p.clip.beam}</span> · ${res.cut||res.drop?`ล้ำกรอบไม่เกิน 10%: ${res.cut} แนว${res.drop?' · ไม่สร้าง '+res.drop+' แนวที่ล้ำเกิน 10%':''}`:'อยู่ในกรอบทั้งหมด'}<br>ส่วนที่อยู่ในกรอบ ${Math.round(res.inFrac*100)}%`:`<br>ครอบคลุม ≈ ${wT.toFixed(1)} × ${lT.toFixed(1)} กม. (${Math.round(wT*lT).toLocaleString()} ตร.กม.)`}${multi?`<br><b>รวมทั้งหมด ${pts.length} จุด · ${total} แนว</b>`:''}`;
+ $('info').innerHTML=`<b>RADARSAT-2</b> · ${multi?'จุดที่ '+(act+1)+' · ':''}${p.pass==='ascending'?'ขาขึ้น':'ขาลง'}<br>จุดกลาง: ${f5(p.lat)}, ${f5(p.lon)} · <a target="_blank" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lon}">Street View</a><br>ขนาด 1 แนว: ${p.width} × ${p.length} กม.<br>ทิศทางโคจร ${res.heading.toFixed(2)}° (เอียง ${res.tilt.toFixed(2)}° จากแนวเหนือ-ใต้)${p.ref?'<br>อ้างอิงแนว #'+p.ref.tk+' · '+dstr(Date.parse(p.ref.t))+' '+hm(Date.parse(p.ref.t)):''}<br>จำนวน ${res.strips.length} แนว${NA>1?' · ระยะห่างบน-ล่าง '+res.stepA.toFixed(3)+' กม.':''}${p.clip?`<br>กรอบอ้างอิง: <span class="badge" style="background:${BC[p.clip.beam]||'#16a34a'}">${p.clip.beam}</span> · ${res.cut||res.drop?`ล้ำกรอบ (แนวแรกล้ำได้เกิน 10%): ${res.cut} แนว${res.drop?' · ไม่สร้าง '+res.drop+' แนวที่ล้ำเกิน 10%':''}`:'อยู่ในกรอบทั้งหมด'}<br>ส่วนที่อยู่ในกรอบ ${Math.round(res.inFrac*100)}%`:`<br>ครอบคลุม ≈ ${wT.toFixed(1)} × ${lT.toFixed(1)} กม. (${Math.round(wT*lT).toLocaleString()} ตร.กม.)`}${multi?`<br><b>รวมทั้งหมด ${pts.length} จุด · ${total} แนว</b>`:''}`;
  $('ptlist').innerHTML=pts.map((q,i)=>`<span style="display:inline-flex;gap:2px"><button class="pt ${i===act?'on':''}" data-i="${i}">จุด ${i+1} · ${q.pass==='ascending'?'ขาขึ้น':'ขาลง'} · ${q.nAlong} แนว${q.clip?' · '+q.clip.beam:''}</button><button class="pt" data-d="${i}" title="ลบจุดนี้">✕</button></span>`).join('');
  $('ptlist').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>setActive(+b.dataset.i));
  $('ptlist').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>delPoint(+b.dataset.d));
@@ -554,10 +554,23 @@ $('delp').onclick=()=>act>=0?delPoint(act):alert('ยังไม่มีจุ
 $('clr').onclick=()=>{if(pts.length>1&&!confirm('ล้างทุกจุด ('+pts.length+' จุด) ?'))return;pts=[];act=-1;$('lat').value=$('lon').value='';refresh()};
 // ---- Export KML / Shapefile (ไม่พึ่งไลบรารีภายนอก)
 const xe=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
-function toKML(g){
- const pl=g.features.map(f=>{const pr=f.properties,ring=f.geometry.coordinates[0];
-  const ed=Object.keys(pr).map(k=>`<Data name="${xe(k)}"><value>${xe(pr[k])}</value></Data>`).join('');
-  return `<Placemark><name>${xe(pr.name)}</name><description>${xe('Date '+pr.date+' | '+pr.length_km+' x '+pr.width_km+' km | '+pr.passDir)}</description><styleUrl>#s</styleUrl><ExtendedData>${ed}</ExtendedData><Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${ring.map(c=>c[0]+','+c[1]+',0').join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`}).join('\n');
+function toFrames(g){const m=new Map();g.features.forEach(f=>{const k=f.properties.point;if(!m.has(k))m.set(k,[]);m.get(k).push(f.properties)});
+ return[...m.entries()].map(([k,ps])=>{const p0=ps[0],C=ps.flatMap(p=>[1,2,3,4].map(q=>[p['cornerLng'+q],p['cornerLat'+q]]));
+  const la0=C.reduce((a,v)=>a+v[1],0)/C.length,lo0=C.reduce((a,v)=>a+v[0],0)/C.length,cs=Math.cos(la0*Math.PI/180),K=111.195;
+  const xy=v=>[(v[0]-lo0)*cs*K,(v[1]-la0)*K],back=(x,y)=>[lo0+x/K/cs,la0+y/K];
+  let c=[1,2,3,4].map(q=>[p0['cornerLng'+q],p0['cornerLat'+q]]),len=p0.length_km,wid=p0.width_km;
+  if(ps.length>1){const a=xy(c[0]),d=xy(c[3]),b=xy(c[1]);let u=[d[0]-a[0],d[1]-a[1]];const ul=Math.hypot(u[0],u[1]);u=[u[0]/ul,u[1]/ul];
+   let v=[b[0]-a[0],b[1]-a[1]];const dp=v[0]*u[0]+v[1]*u[1];v=[v[0]-dp*u[0],v[1]-dp*u[1]];const vl=Math.hypot(v[0],v[1]);v=[v[0]/vl,v[1]/vl];
+   let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;C.forEach(w=>{const z=xy(w),pu=z[0]*u[0]+z[1]*u[1],pv=z[0]*v[0]+z[1]*v[1];u0=Math.min(u0,pu);u1=Math.max(u1,pu);v0=Math.min(v0,pv);v1=Math.max(v1,pv)});
+   const at=(pu,pv)=>back(pu*u[0]+pv*v[0],pu*u[1]+pv*v[1]);
+   c=[at(u0,v0),at(u0,v1),at(u1,v1),at(u1,v0)];len=Math.round((u1-u0)*1000)/1000;wid=Math.round((v1-v0)*1000)/1000}
+  const pr={name:'Frame '+k,satellite:p0.satellite,date:p0.date,point:k,passDir:p0.passDir,beam:p0.beam,nStrips:ps.length,length_km:len,width_km:wid,centreLat:r5(c.reduce((a,v)=>a+v[1],0)/4),centreLong:r5(c.reduce((a,v)=>a+v[0],0)/4)};
+  c.forEach((v,q)=>{pr['cornerLat'+(q+1)]=r5(v[1]);pr['cornerLng'+(q+1)]=r5(v[0])});
+  const ring=c.map(v=>[r5(v[0]),r5(v[1])]);ring.push(ring[0]);
+  return{properties:pr,ring}})}
+function toKML(g){const FR=toFrames(g);
+ const pl=FR.map(f=>{const pr=f.properties,ed=Object.keys(pr).map(k=>`<Data name="${xe(k)}"><value>${xe(pr[k])}</value></Data>`).join('');
+  return `<Placemark><name>${xe(pr.name)}</name><description>${xe('Date '+pr.date+' | '+pr.passDir+' | '+pr.nStrips+' strip(s) | '+pr.length_km+' x '+pr.width_km+' km')}</description><styleUrl>#s</styleUrl><ExtendedData>${ed}</ExtendedData><Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${f.ring.map(c=>c[0]+','+c[1]+',0').join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`}).join('\n');
  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xe(g.name)}</name>\n<Style id="s"><LineStyle><color>ff0000ff</color><width>2</width></LineStyle><PolyStyle><color>330000ff</color></PolyStyle></Style>\n${pl}\n</Document></kml>`}
 function crc32(u){let t=crc32.t,c,n;if(!t){t=crc32.t=[];for(n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}c=0xFFFFFFFF;for(n=0;n<u.length;n++)c=t[(c^u[n])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
 function makeZip(files){const enc=new TextEncoder(),d=new Date(),dt=((d.getFullYear()-1980)<<9|(d.getMonth()+1)<<5|d.getDate())&0xFFFF,tm=(d.getHours()<<11|d.getMinutes()<<5|(d.getSeconds()>>1))&0xFFFF,parts=[],cen=[];let off=0;
@@ -569,41 +582,33 @@ function makeZip(files){const enc=new TextEncoder(),d=new Date(),dt=((d.getFullY
  const cs=cen.reduce((n,a)=>n+a.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
  return new Blob([...parts,...cen,new Uint8Array(e.buffer)],{type:'application/zip'})}
 const PRJ='GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
-function toSHP(g){
+function toSHP(g){const FR=toFrames(g),n=FR.length;
  const cw=r=>{let a=0;for(let i=0;i<r.length-1;i++)a+=(r[i+1][0]-r[i][0])*(r[i+1][1]+r[i][1]);return a>0?r:r.slice().reverse()};
- const rings=g.features.map(f=>cw(f.geometry.coordinates[0]));
- let X0=1e9,Y0=1e9,X1=-1e9,Y1=-1e9;
- const bb=rings.map(r=>{let a=1e9,b=1e9,c=-1e9,d=-1e9;r.forEach(p=>{a=Math.min(a,p[0]);b=Math.min(b,p[1]);c=Math.max(c,p[0]);d=Math.max(d,p[1])});X0=Math.min(X0,a);Y0=Math.min(Y0,b);X1=Math.max(X1,c);Y1=Math.max(Y1,d);return[a,b,c,d]});
- const shpLen=100+rings.reduce((n,r)=>n+8+48+16*r.length,0),shxLen=100+8*rings.length,shp=new DataView(new ArrayBuffer(shpLen)),shx=new DataView(new ArrayBuffer(shxLen));
+ const rings=FR.map(f=>cw(f.ring));let X0=1e9,Y0=1e9,X1=-1e9,Y1=-1e9;
+ rings.forEach(r=>r.forEach(p=>{X0=Math.min(X0,p[0]);X1=Math.max(X1,p[0]);Y0=Math.min(Y0,p[1]);Y1=Math.max(Y1,p[1])}));
+ const shpLen=100+n*(8+48+16*5),shxLen=100+8*n,shp=new DataView(new ArrayBuffer(shpLen)),shx=new DataView(new ArrayBuffer(shxLen));
  const hdr=(v,len)=>{v.setInt32(0,9994);v.setInt32(24,len/2);v.setInt32(28,1000,true);v.setInt32(32,5,true);[X0,Y0,X1,Y1].forEach((x,i)=>v.setFloat64(36+8*i,x,true))};
- hdr(shp,shpLen);hdr(shx,shxLen);
- let o=100;
- rings.forEach((r,i)=>{const cl=48+16*r.length;
-  shx.setInt32(100+8*i,o/2);shx.setInt32(104+8*i,cl/2);
-  shp.setInt32(o,i+1);shp.setInt32(o+4,cl/2);o+=8;
-  shp.setInt32(o,5,true);bb[i].forEach((x,k)=>shp.setFloat64(o+4+8*k,x,true));
-  shp.setInt32(o+36,1,true);shp.setInt32(o+40,r.length,true);shp.setInt32(o+44,0,true);
-  r.forEach((p,k)=>{shp.setFloat64(o+48+16*k,p[0],true);shp.setFloat64(o+56+16*k,p[1],true)});
-  o+=cl});
- // ---- .dbf (ชื่อฟิลด์ <= 10 ตัวอักษร)
- const F=[['name','name','C',40,0],['satellite','satellite','C',12,0],['date','date','C',10,0],['point','point','N',4,0],['passDir','passDir','C',10,0],['strip','strip','N',4,0],['scene','scene','N',4,0],['length_km','length_km','N',10,3],['width_km','width_km','N',10,3],['ovSide_km','ovSide_km','N',10,3],['ovAlong_km','ovAlong_km','N',10,3],['heading','heading_deg','N',10,2],['beam','beam','C',8,0],['outBeamPct','outsideBeam_pct','N',8,1],['refImgDt','refImagstrtDt','C',24,0],['refTrack','refTrack','N',8,0],['centreLat','centreLat','N',12,5],['centreLong','centreLong','N',13,5]];
- for(let q=1;q<=4;q++){F.push(['cornerLat'+q,'cornerLat'+q,'N',12,5]);F.push(['cornerLng'+q,'cornerLng'+q,'N',13,5])}
- const enc=new TextEncoder(),nf=F.length,hl=33+32*nf,rl=1+F.reduce((n,f)=>n+f[3],0),dbf=new Uint8Array(hl+rl*rings.length+1),dv=new DataView(dbf.buffer),now=new Date();
- dbf[0]=3;dbf[1]=now.getFullYear()-1900;dbf[2]=now.getMonth()+1;dbf[3]=now.getDate();dv.setUint32(4,rings.length,true);dv.setUint16(8,hl,true);dv.setUint16(10,rl,true);
- F.forEach((f,i)=>{const b=32+32*i;enc.encode(f[0]).forEach((c,k)=>dbf[b+k]=c);dbf[b+11]=f[2].charCodeAt(0);dbf[b+16]=f[3];dbf[b+17]=f[4]});
+ hdr(shp,shpLen);hdr(shx,shxLen);let o=100;
+ rings.forEach((r,i)=>{const cl=48+80,xs=r.map(p=>p[0]),ys=r.map(p=>p[1]);
+  shx.setInt32(100+8*i,o/2);shx.setInt32(104+8*i,cl/2);shp.setInt32(o,i+1);shp.setInt32(o+4,cl/2);o+=8;
+  shp.setInt32(o,5,true);[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)].forEach((x,k)=>shp.setFloat64(o+4+8*k,x,true));
+  shp.setInt32(o+36,1,true);shp.setInt32(o+40,5,true);shp.setInt32(o+44,0,true);
+  r.forEach((p,k)=>{shp.setFloat64(o+48+16*k,p[0],true);shp.setFloat64(o+56+16*k,p[1],true)});o+=cl});
+ const F=[['name','C',20,0],['satellite','C',12,0],['date','C',10,0],['point','N',4,0],['passDir','C',10,0],['beam','C',8,0],['nStrips','N',4,0],['length_km','N',10,3],['width_km','N',10,3],['centreLat','N',12,5],['centreLong','N',13,5]];
+ for(let q=1;q<=4;q++){F.push(['cornerLat'+q,'N',12,5]);F.push(['cornerLng'+q,'N',13,5])}
+ const enc=new TextEncoder(),nf=F.length,hl=33+32*nf,rl=1+F.reduce((a,f)=>a+f[2],0),dbf=new Uint8Array(hl+rl*n+1),dv=new DataView(dbf.buffer),now=new Date();
+ dbf[0]=3;dbf[1]=now.getFullYear()-1900;dbf[2]=now.getMonth()+1;dbf[3]=now.getDate();dv.setUint32(4,n,true);dv.setUint16(8,hl,true);dv.setUint16(10,rl,true);
+ F.forEach((f,i)=>{const b=32+32*i;enc.encode(f[0]).forEach((c,k)=>dbf[b+k]=c);dbf[b+11]=f[1].charCodeAt(0);dbf[b+16]=f[2];dbf[b+17]=f[3]});
  dbf[32+32*nf]=0x0D;
- g.features.forEach((ft,i)=>{let p=hl+rl*i;dbf[p++]=0x20;
-  F.forEach(f=>{const v=ft.properties[f[1]];let s;
-   if(f[2]==='N'){s=(v==null||v==='')?'':Number(v).toFixed(f[4]);s=s.padStart(f[3],' ').slice(-f[3])}else s=v==null?'':String(v);
-   const bytes=enc.encode(s).slice(0,f[3]);
-   for(let k=0;k<f[3];k++)dbf[p+k]=k<bytes.length?bytes[k]:0x20;
-   p+=f[3]})});
- dbf[dbf.length-1]=0x1A;
- const base=g.name;
+ FR.forEach((fr,i)=>{let p=hl+rl*i;dbf[p++]=0x20;
+  F.forEach(f=>{const v=fr.properties[f[0]];let s;
+   if(f[1]==='N'){s=(v==null||v==='')?'':Number(v).toFixed(f[3]);s=s.padStart(f[2],' ').slice(-f[2])}else s=v==null?'':String(v);
+   const by=enc.encode(s).slice(0,f[2]);for(let k=0;k<f[2];k++)dbf[p+k]=k<by.length?by[k]:0x20;p+=f[2]})});
+ dbf[dbf.length-1]=0x1A;const base=g.name+'_frame';
  return makeZip([{name:base+'.shp',data:new Uint8Array(shp.buffer)},{name:base+'.shx',data:new Uint8Array(shx.buffer)},{name:base+'.dbf',data:dbf},{name:base+'.prj',data:enc.encode(PRJ)},{name:base+'.cpg',data:enc.encode('UTF-8')}])}
 const dl=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
-$('expk').onclick=()=>{if(!pts.length){alert('ยังไม่มีแนวให้ export');return}const g=toGJ();dl(new Blob([toKML(g)],{type:'application/vnd.google-earth.kml+xml'}),g.name+'.kml')};
-$('exps').onclick=()=>{if(!pts.length){alert('ยังไม่มีแนวให้ export');return}const g=toGJ();dl(toSHP(g),g.name+'_shp.zip')};
+$('expk').onclick=()=>{if(!pts.length){alert('ยังไม่มีแนวให้ export');return}const g=toGJ();dl(new Blob([toKML(g)],{type:'application/vnd.google-earth.kml+xml'}),g.name+'_frame.kml')};
+$('exps').onclick=()=>{if(!pts.length){alert('ยังไม่มีแนวให้ export');return}const g=toGJ();dl(toSHP(g),g.name+'_frame_shp.zip')};
 $('copy').onclick=()=>{if(!pts.length){alert('ยังไม่มีแนว');return}navigator.clipboard.writeText(JSON.stringify(toGJ(),null,2)).then(()=>alert('คัดลอก GeoJSON แล้ว'),()=>alert('คัดลอกไม่สำเร็จ ใช้ปุ่ม Export แทน'))};
 defaults();syncSeg();setDraw(true);
 // ---- UI
